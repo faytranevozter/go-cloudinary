@@ -427,9 +427,6 @@ func (s *Service) uploadFile(fullPath string, data io.Reader, randomPublicID boo
 	}
 	defer resp.Body.Close()
 
-	fmt.Println("Aaaaaaaaaaaa")
-	fmt.Println(resp.Body)
-
 	if resp.StatusCode == http.StatusOK {
 		// Body is JSON data and looks like:
 		// {"public_id":"Downloads/file","version":1369431906,"format":"png","resource_type":"image"}
