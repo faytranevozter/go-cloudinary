@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	baseAdminUrl = "https://api.cloudinary.com/v1_1"
+	baseAdminURL = "https://api.cloudinary.com/v1_1"
 )
 
 const (
@@ -44,13 +44,13 @@ func (s *Service) dropAllResources(rtype ResourceType, w io.Writer) error {
 			return err
 		}
 		for _, v := range m["resources"].([]interface{}) {
-			publicId := v.(map[string]interface{})["public_id"].(string)
+			publicID := v.(map[string]interface{})["public_id"].(string)
 			if w != nil {
-				fmt.Fprintf(w, "Deleting %s ... ", publicId)
+				fmt.Fprintf(w, "Deleting %s ... ", publicID)
 			}
-			if err := s.Delete(publicId, "", rtype); err != nil {
+			if err := s.Delete(publicID, "", rtype); err != nil {
 				// Do not return. Report the error but continue through the list.
-				fmt.Fprintf(w, "Error: %s: %s\n", publicId, err.Error())
+				fmt.Fprintf(w, "Error: %s: %s\n", publicID, err.Error())
 			}
 		}
 		if e, ok := m["next_cursor"]; ok {
@@ -122,10 +122,10 @@ func (s *Service) doGetResources(rtype ResourceType) ([]*Resource, error) {
 	return allres, nil
 }
 
-func (s *Service) doGetResourceDetails(publicId string) (*ResourceDetails, error) {
+func (s *Service) doGetResourceDetails(publicID string) (*ResourceDetails, error) {
 	path := pathListSingleImage
 
-	resp, err := http.Get(fmt.Sprintf("%s%s%s", s.adminURI, path, publicId))
+	resp, err := http.Get(fmt.Sprintf("%s%s%s", s.adminURI, path, publicID))
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func (s *Service) Resources(rtype ResourceType) ([]*Resource, error) {
 	return s.doGetResources(rtype)
 }
 
-// GetResourceDetails gets the details of a single resource that is specified by publicId.
-func (s *Service) ResourceDetails(publicId string) (*ResourceDetails, error) {
-	return s.doGetResourceDetails(publicId)
+// ResourceDetails gets the details of a single resource that is specified by publicID.
+func (s *Service) ResourceDetails(publicID string) (*ResourceDetails, error) {
+	return s.doGetResourceDetails(publicID)
 }

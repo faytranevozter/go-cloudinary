@@ -34,8 +34,8 @@ import (
 )
 
 const (
-	baseUploadUrl   = "https://api.cloudinary.com/v1_1"
-	baseResourceUrl = "https://res.cloudinary.com"
+	baseUploadURL   = "https://api.cloudinary.com/v1_1"
+	baseResourceURL = "https://res.cloudinary.com"
 	imageType       = "image"
 	videoType       = "video"
 	pdfType         = "image"
@@ -71,12 +71,12 @@ type Service struct {
 
 // Resource holds information about an image or a raw file.
 type Resource struct {
-	PublicId     string `json:"public_id"`
+	PublicID     string `json:"public_id"`
 	Version      int    `json:"version"`
 	ResourceType string `json:"resource_type"` // image or raw
 	Size         int    `json:"bytes"`         // In bytes
-	Url          string `json:"url"`           // Remote url
-	SecureUrl    string `json:"secure_url"`    // Over https
+	URL          string `json:"url"`           // Remote url
+	SecureURL    string `json:"secure_url"`    // Over https
 }
 
 type pagination struct {
@@ -89,28 +89,28 @@ type resourceList struct {
 }
 
 type ResourceDetails struct {
-	PublicId     string     `json:"public_id"`
+	PublicID     string     `json:"public_id"`
 	Format       string     `json:"format"`
 	Version      int        `json:"version"`
 	ResourceType string     `json:"resource_type"` // image or raw
 	Size         int        `json:"bytes"`         // In bytes
 	Width        int        `json:"width"`         // Width
 	Height       int        `json:"height"`        // Height
-	Url          string     `json:"url"`           // Remote url
-	SecureUrl    string     `json:"secure_url"`    // Over https
+	URL          string     `json:"url"`           // Remote url
+	SecureURL    string     `json:"secure_url"`    // Over https
 	Derived      []*Derived `json:"derived"`       // Derived
 }
 
 type Derived struct {
 	Transformation string `json:"transformation"` // Transformation
 	Size           int    `json:"bytes"`          // In bytes
-	Url            string `json:"url"`            // Remote url
+	URL            string `json:"url"`            // Remote url
 }
 
 // Upload response after uploading a file.
 type uploadResponse struct {
-	Id           string `bson:"_id"`
-	PublicId     string `json:"public_id"`
+	ID           string `bson:"_id"`
+	PublicID     string `json:"public_id"`
 	Version      uint   `json:"version"`
 	Format       string `json:"format"`
 	ResourceType string `json:"resource_type"` // "image" or "raw"
@@ -144,14 +144,14 @@ func Dial(uri string) (*Service, error) {
 	}
 	// Default upload URI to the service. Can change at runtime in the
 	// Upload() function for raw file uploading.
-	up, err := url.Parse(fmt.Sprintf("%s/%s/image/upload/", baseUploadUrl, s.cloudName))
+	up, err := url.Parse(fmt.Sprintf("%s/%s/image/upload/", baseUploadURL, s.cloudName))
 	if err != nil {
 		return nil, err
 	}
 	s.uploadURI = up
 
 	// Admin API url
-	adm, err := url.Parse(fmt.Sprintf("%s/%s", baseAdminUrl, s.cloudName))
+	adm, err := url.Parse(fmt.Sprintf("%s/%s", baseAdminURL, s.cloudName))
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +294,7 @@ func (s *Service) walkIt(path string, info os.FileInfo, err error) error {
 // Upload file to the service. When using a mongoDB database for storing
 // file information (such as checksums), the database is updated after
 // any successful upload.
-func (s *Service) uploadFile(fullPath string, data io.Reader, randomPublicId bool) (string, error) {
+func (s *Service) uploadFile(fullPath string, data io.Reader, randomPublicID bool) (string, error) {
 	// Do not upload empty files
 	fi, err := os.Stat(fullPath)
 	if err == nil && fi.Size() == 0 {
@@ -306,10 +306,10 @@ func (s *Service) uploadFile(fullPath string, data io.Reader, randomPublicId boo
 	// First check we have no match before sending an HTTP query
 	changedLocally := false
 	if s.dbSession != nil {
-		publicId := cleanAssetName(fullPath, s.basePathDir, s.prependPath)
+		publicID := cleanAssetName(fullPath, s.basePathDir, s.prependPath)
 		ext := filepath.Ext(fullPath)
 		match := &uploadResponse{}
-		err := s.col.Find(bson.M{"$or": []bson.M{bson.M{"_id": publicId}, bson.M{"_id": publicId + ext}}}).One(&match)
+		err := s.col.Find(bson.M{"$or": []bson.M{bson.M{"_id": publicID}, bson.M{"_id": publicID + ext}}}).One(&match)
 		if err == nil {
 			// Current file checksum
 			chk, err := fileChecksum(fullPath)
@@ -337,14 +337,14 @@ func (s *Service) uploadFile(fullPath string, data io.Reader, randomPublicId boo
 	w := multipart.NewWriter(buf)
 
 	// Write public ID
-	var publicId string
-	if !randomPublicId {
-		publicId = cleanAssetName(fullPath, s.basePathDir, s.prependPath)
+	var publicID string
+	if !randomPublicID {
+		publicID = cleanAssetName(fullPath, s.basePathDir, s.prependPath)
 		pi, err := w.CreateFormField("public_id")
 		if err != nil {
 			return fullPath, err
 		}
-		pi.Write([]byte(publicId))
+		pi.Write([]byte(publicID))
 	}
 	// Write API key
 	ak, err := w.CreateFormField("api_key")
@@ -364,8 +364,8 @@ func (s *Service) uploadFile(fullPath string, data io.Reader, randomPublicId boo
 	// Write signature
 	hash := sha1.New()
 	part := fmt.Sprintf("timestamp=%s%s", timestamp, s.apiSecret)
-	if !randomPublicId {
-		part = fmt.Sprintf("public_id=%s&%s", publicId, part)
+	if !randomPublicID {
+		part = fmt.Sprintf("public_id=%s&%s", publicID, part)
 	}
 	io.WriteString(hash, part)
 	signature := fmt.Sprintf("%x", hash.Sum(nil))
@@ -427,6 +427,9 @@ func (s *Service) uploadFile(fullPath string, data io.Reader, randomPublicId boo
 	}
 	defer resp.Body.Close()
 
+	fmt.Println("Aaaaaaaaaaaa")
+	fmt.Println(resp.Body)
+
 	if resp.StatusCode == http.StatusOK {
 		// Body is JSON data and looks like:
 		// {"public_id":"Downloads/file","version":1369431906,"format":"png","resource_type":"image"}
@@ -442,10 +445,10 @@ func (s *Service) uploadFile(fullPath string, data io.Reader, randomPublicId boo
 			if err != nil {
 				return fullPath, err
 			}
-			upInfo.Id = upInfo.PublicId // Force document id
+			upInfo.ID = upInfo.PublicID // Force document id
 			upInfo.Checksum = chk
 			if changedLocally {
-				if err := s.col.Update(bson.M{"_id": upInfo.PublicId}, upInfo); err != nil {
+				if err := s.col.Update(bson.M{"_id": upInfo.PublicID}, upInfo); err != nil {
 					return fullPath, err
 				}
 			} else {
@@ -454,7 +457,7 @@ func (s *Service) uploadFile(fullPath string, data io.Reader, randomPublicId boo
 				}
 			}
 		}
-		return upInfo.PublicId, nil
+		return upInfo.PublicID, nil
 	} else {
 		return fullPath, errors.New("Request error: " + resp.Status)
 	}
@@ -490,12 +493,12 @@ func (s *Service) UploadPdf(path string, data io.Reader, prepend string) (string
 // all files are recursively uploaded to Cloudinary.
 //
 // In order to upload content, path is always required (used to get the
-// directory name or resource name if randomPublicId is false) but data
+// directory name or resource name if randomPublicID is false) but data
 // can be nil. If data is non-nil the content of the file will be read
 // from it. If data is nil, the function will try to open filename(s)
 // specified by path.
 //
-// If ramdomPublicId is true, the service generates a unique random public
+// If ramdomPublicID is true, the service generates a unique random public
 // id. Otherwise, the resource's public id is computed using the absolute
 // path of the file.
 //
@@ -506,7 +509,7 @@ func (s *Service) UploadPdf(path string, data io.Reader, prepend string) (string
 // /tmp/images/logo.png will be stored as images/logo.
 //
 // The function returns the public identifier of the resource.
-func (s *Service) Upload(path string, data io.Reader, prepend string, randomPublicId bool, rtype ResourceType) (string, error) {
+func (s *Service) Upload(path string, data io.Reader, prepend string, randomPublicID bool, rtype ResourceType) (string, error) {
 	s.uploadResType = rtype
 	s.basePathDir = ""
 	s.prependPath = prepend
@@ -522,18 +525,18 @@ func (s *Service) Upload(path string, data io.Reader, prepend string, randomPubl
 				return path, err
 			}
 		} else {
-			return s.uploadFile(path, nil, randomPublicId)
+			return s.uploadFile(path, nil, randomPublicID)
 		}
 	} else {
-		return s.uploadFile(path, data, randomPublicId)
+		return s.uploadFile(path, data, randomPublicID)
 	}
 	return path, nil
 }
 
 // Url returns the complete access path in the cloud to the
-// resource designed by publicId or the empty string if
+// resource designed by publicID or the empty string if
 // no match.
-func (s *Service) Url(publicId string, rtype ResourceType) string {
+func (s *Service) Url(publicID string, rtype ResourceType) string {
 	path := imageType
 	if rtype == PdfType {
 		path = pdfType
@@ -542,7 +545,7 @@ func (s *Service) Url(publicId string, rtype ResourceType) string {
 	} else if rtype == RawType {
 		path = rawType
 	}
-	return fmt.Sprintf("%s/%s/%s/upload/%s", baseResourceUrl, s.cloudName, path, publicId)
+	return fmt.Sprintf("%s/%s/%s/upload/%s", baseResourceURL, s.cloudName, path, publicID)
 }
 
 func handleHttpResponse(resp *http.Response) (map[string]interface{}, error) {
@@ -566,16 +569,16 @@ func handleHttpResponse(resp *http.Response) (map[string]interface{}, error) {
 }
 
 // Delete deletes a resource uploaded to Cloudinary.
-func (s *Service) Delete(publicId, prepend string, rtype ResourceType) error {
+func (s *Service) Delete(publicID, prepend string, rtype ResourceType) error {
 	// TODO: also delete resource entry from database (if used)
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	data := url.Values{
 		"api_key":   []string{s.apiKey},
-		"public_id": []string{prepend + publicId},
+		"public_id": []string{prepend + publicID},
 		"timestamp": []string{timestamp},
 	}
 	if s.keepFilesPattern != nil {
-		if s.keepFilesPattern.MatchString(prepend + publicId) {
+		if s.keepFilesPattern.MatchString(prepend + publicID) {
 			fmt.Println("keep")
 			return nil
 		}
@@ -587,7 +590,7 @@ func (s *Service) Delete(publicId, prepend string, rtype ResourceType) error {
 
 	// Signature
 	hash := sha1.New()
-	part := fmt.Sprintf("public_id=%s&timestamp=%s%s", prepend+publicId, timestamp, s.apiSecret)
+	part := fmt.Sprintf("public_id=%s&timestamp=%s%s", prepend+publicID, timestamp, s.apiSecret)
 	io.WriteString(hash, part)
 	data.Set("signature", fmt.Sprintf("%x", hash.Sum(nil)))
 
@@ -595,7 +598,7 @@ func (s *Service) Delete(publicId, prepend string, rtype ResourceType) error {
 	if rtype == RawType {
 		rt = rawType
 	}
-	resp, err := http.PostForm(fmt.Sprintf("%s/%s/%s/destroy/", baseUploadUrl, s.cloudName, rt), data)
+	resp, err := http.PostForm(fmt.Sprintf("%s/%s/%s/destroy/", baseUploadURL, s.cloudName, rt), data)
 	if err != nil {
 		return err
 	}
@@ -609,7 +612,7 @@ func (s *Service) Delete(publicId, prepend string, rtype ResourceType) error {
 	}
 	// Remove DB entry
 	if s.dbSession != nil {
-		if err := s.col.Remove(bson.M{"_id": prepend + publicId}); err != nil {
+		if err := s.col.Remove(bson.M{"_id": prepend + publicID}); err != nil {
 			return errors.New("can't remove entry from DB: " + err.Error())
 		}
 	}
@@ -636,7 +639,7 @@ func (s *Service) Rename(publicID, toPublicID, prepend string, rtype ResourceTyp
 	if rtype == RawType {
 		rt = rawType
 	}
-	resp, err := http.PostForm(fmt.Sprintf("%s/%s/%s/rename", baseUploadUrl, s.cloudName, rt), data)
+	resp, err := http.PostForm(fmt.Sprintf("%s/%s/%s/rename", baseUploadURL, s.cloudName, rt), data)
 	if err != nil {
 		return err
 	}
